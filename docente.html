@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel del Docente</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #3498db;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-primary {
+            background-color: #2ecc71;
+        }
+
+        .btn-primary:hover {
+            background-color: #27ae60;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+
+        .pregunta {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+
+        .opcion {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .opcion input[type="text"] {
+            flex-grow: 1;
+            margin-left: 10px;
+        }
+
+        .opciones-container {
+            margin-top: 10px;
+        }
+
+        .examen-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+
+        .examen-item h3 {
+            margin-top: 0;
+        }
+
+        .resultados-table {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #3498db;
+            color: white;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .aprobado {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .desaprobado {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .stats {
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f0f8ff;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Panel del Docente</h1>
+        
+        <div class="section" id="seleccion-docente">
+            <h2>Seleccione su nombre</h2>
+            <select id="docente-select" class="form-control">
+                <option value="">-- Seleccione un docente --</option>
+                <option value="1">Profesor: Sebastián Gomez</option>
+               
+            </select>
+        </div>
+        
+        <div class="section hidden" id="seleccion-materia">
+            <h2>Seleccione la materia</h2>
+            <select id="materia-select" class="form-control">
+                <option value="">-- Seleccione una materia --</option>
+            </select>
+        </div>
+        
+        <div class="section hidden" id="creacion-examen">
+            <h2>Crear Nuevo Examen</h2>
+            <div class="form-group">
+                <label for="nombre-examen">Nombre del Examen:</label>
+                <input type="text" id="nombre-examen" class="form-control">
+            </div>
+            
+            <div id="preguntas-container"></div>
+            
+            <button id="agregar-pregunta" class="btn">Agregar Pregunta</button>
+            <button id="guardar-examen" class="btn btn-primary">Guardar Examen</button>
+        </div>
+        
+        <div class="section hidden" id="resultados-examenes">
+            <h2>Resultados de Exámenes</h2>
+            <div id="examenes-list"></div>
+            <div id="resultados-container"></div>
+        </div>
+    </div>
+
+    <script>
+        const docentes = [
+            { id: 1, nombre: "Profesor Juan Pérez", materias: ["Seguridad Informática", "Programación II", "Programación I", "Técnicas Digitales II", "Lab. de Sistemas Operativos II"] },
+           
+        ];
+
+        let examenes = [];
+        let examenActual = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const docenteSelect = document.getElementById('docente-select');
+            const materiaSelect = document.getElementById('materia-select');
+            const seleccionMateria = document.getElementById('seleccion-materia');
+            const creacionExamen = document.getElementById('creacion-examen');
+            const resultadosExamenes = document.getElementById('resultados-examenes');
+            const agregarPreguntaBtn = document.getElementById('agregar-pregunta');
+            const guardarExamenBtn = document.getElementById('guardar-examen');
+            const preguntasContainer = document.getElementById('preguntas-container');
+            const examenesList = document.getElementById('examenes-list');
+            const resultadosContainer = document.getElementById('resultados-container');
+            
+            if (localStorage.getItem('examenes')) {
+                examenes = JSON.parse(localStorage.getItem('examenes'));
+            }
+
+            docenteSelect.addEventListener('change', function() {
+                if (this.value) {
+                    const docente = docentes.find(d => d.id == this.value);
+                    cargarMaterias(docente.materias);
+                    seleccionMateria.classList.remove('hidden');
+                } else {
+                    seleccionMateria.classList.add('hidden');
+                    creacionExamen.classList.add('hidden');
+                    resultadosExamenes.classList.add('hidden');
+                }
+            });
+
+            materiaSelect.addEventListener('change', function() {
+                if (this.value) {
+                    creacionExamen.classList.remove('hidden');
+                    resultadosExamenes.classList.remove('hidden');
+                    iniciarNuevoExamen();
+                    cargarExamenes();
+                } else {
+                    creacionExamen.classList.add('hidden');
+                    resultadosExamenes.classList.add('hidden');
+                }
+            });
+
+            agregarPreguntaBtn.addEventListener('click', agregarPregunta);
+            guardarExamenBtn.addEventListener('click', guardarExamen);
+
+            function cargarMaterias(materias) {
+                materiaSelect.innerHTML = '<option value="">-- Seleccione una materia --</option>';
+                materias.forEach(materia => {
+                    const option = document.createElement('option');
+                    option.value = materia;
+                    option.textContent = materia;
+                    materiaSelect.appendChild(option);
+                });
+            }
+
+            function iniciarNuevoExamen() {
+                examenActual = {
+                    docente: docenteSelect.options[docenteSelect.selectedIndex].text,
+                    materia: materiaSelect.value,
+                    nombre: "",
+                    preguntas: [],
+                    resultados: []
+                };
+                preguntasContainer.innerHTML = '';
+                document.getElementById('nombre-examen').value = '';
+            }
+
+            function agregarPregunta() {
+                const preguntaId = Date.now();
+                
+                const preguntaDiv = document.createElement('div');
+                preguntaDiv.className = 'pregunta';
+                preguntaDiv.dataset.id = preguntaId;
+                
+                preguntaDiv.innerHTML = `
+                    <div class="form-group">
+                        <label>Pregunta:</label>
+                        <textarea class="form-control pregunta-texto" placeholder="Escriba la pregunta aquí"></textarea>
+                    </div>
+                    <div class="opciones-container">
+                        <div class="opcion">
+                            <input type="radio" name="correcta-${preguntaId}" value="0" checked>
+                            <input type="text" class="form-control opcion-texto" placeholder="Opción 1">
+                        </div>
+                        <div class="opcion">
+                            <input type="radio" name="correcta-${preguntaId}" value="1">
+                            <input type="text" class="form-control opcion-texto" placeholder="Opción 2">
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-agregar-opcion">Agregar Opción</button>
+                    <button class="btn btn-sm btn-eliminar-pregunta">Eliminar Pregunta</button>
+                `;
+                
+                preguntasContainer.appendChild(preguntaDiv);
+                
+                preguntaDiv.querySelector('.btn-agregar-opcion').addEventListener('click', function() {
+                    agregarOpcion(preguntaDiv);
+                });
+                
+                preguntaDiv.querySelector('.btn-eliminar-pregunta').addEventListener('click', function() {
+                    preguntasContainer.removeChild(preguntaDiv);
+                });
+            }
+
+            function agregarOpcion(preguntaDiv) {
+                const opcionesContainer = preguntaDiv.querySelector('.opciones-container');
+                const opcionCount = opcionesContainer.children.length;
+                const preguntaId = preguntaDiv.dataset.id;
+                
+                const opcionDiv = document.createElement('div');
+                opcionDiv.className = 'opcion';
+                
+                opcionDiv.innerHTML = `
+                    <input type="radio" name="correcta-${preguntaId}" value="${opcionCount}">
+                    <input type="text" class="form-control opcion-texto" placeholder="Opción ${opcionCount + 1}">
+                `;
+                
+                opcionesContainer.appendChild(opcionDiv);
+            }
+
+            function guardarExamen() {
+                const nombreExamen = document.getElementById('nombre-examen').value.trim();
+                
+                if (!nombreExamen) {
+                    alert('Por favor ingrese un nombre para el examen');
+                    return;
+                }
+                
+                const preguntas = [];
+                const preguntaElements = preguntasContainer.querySelectorAll('.pregunta');
+                
+                if (preguntaElements.length === 0) {
+                    alert('Debe agregar al menos una pregunta al examen');
+                    return;
+                }
+                
+                preguntaElements.forEach(preguntaEl => {
+                    const textoPregunta = preguntaEl.querySelector('.pregunta-texto').value.trim();
+                    const opciones = [];
+                    let correcta = 0;
+                    
+                    const opcionElements = preguntaEl.querySelectorAll('.opcion');
+                    opcionElements.forEach((opcionEl, index) => {
+                        const textoOpcion = opcionEl.querySelector('.opcion-texto').value.trim();
+                        opciones.push(textoOpcion);
+                        
+                        if (opcionEl.querySelector('input[type="radio"]').checked) {
+                            correcta = index;
+                        }
+                    });
+                    
+                    if (textoPregunta && opciones.length > 1 && opciones.every(op => op)) {
+                        preguntas.push({
+                            texto: textoPregunta,
+                            opciones: opciones,
+                            correcta: correcta
+                        });
+                    }
+                });
+                
+                if (preguntas.length === 0) {
+                    alert('Debe agregar preguntas válidas al examen');
+                    return;
+                }
+                
+                examenActual.nombre = nombreExamen;
+                examenActual.preguntas = preguntas;
+                examenActual.fechaCreacion = new Date().toISOString();
+                examenActual.enlace = generarEnlaceExamen();
+                
+                // Guardar como examen activo
+                localStorage.setItem('examenActivo', JSON.stringify(examenActual));
+                
+                // Agregar a la lista de exámenes
+                examenes.push(examenActual);
+                localStorage.setItem('examenes', JSON.stringify(examenes));
+                
+                alert('Examen guardado correctamente. Los alumnos pueden acceder a: ' + examenActual.enlace);
+                cargarExamenes();
+                iniciarNuevoExamen();
+            }
+
+            function generarEnlaceExamen() {
+                return `${window.location.origin}/examen/alumno.html`;
+            }
+
+            function cargarExamenes() {
+                examenesList.innerHTML = '';
+                resultadosContainer.innerHTML = '';
+                
+                const examenesGuardados = JSON.parse(localStorage.getItem('examenes')) || [];
+                examenes = examenesGuardados.filter(e => 
+                    e.docente === docenteSelect.options[docenteSelect.selectedIndex].text && 
+                    e.materia === materiaSelect.value
+                );
+                
+                if (examenes.length === 0) {
+                    examenesList.innerHTML = '<p>No hay exámenes creados para esta materia.</p>';
+                    return;
+                }
+                
+                examenes.forEach(examen => {
+                    const examenElement = document.createElement('div');
+                    examenElement.className = 'examen-item';
+                    examenElement.innerHTML = `
+                        <h3>${examen.nombre}</h3>
+                        <p>Materia: ${examen.materia}</p>
+                        <p>Fecha: ${new Date(examen.fechaCreacion).toLocaleDateString()}</p>
+                        <p>Preguntas: ${examen.preguntas.length}</p>
+                        <p>Enlace para alumnos: <input type="text" value="${examen.enlace}" readonly></p>
+                        <button class="btn btn-ver-resultados" data-id="${examen.enlace.split('=')[1]}">Ver Resultados</button>
+                    `;
+                    
+                    examenesList.appendChild(examenElement);
+                    
+                    examenElement.querySelector('.btn-ver-resultados').addEventListener('click', function() {
+                        mostrarResultados(examen);
+                    });
+                });
+            }
+
+            function mostrarResultados(examen) {
+                resultadosContainer.innerHTML = `
+                    <h3>Resultados: ${examen.nombre}</h3>
+                    <p>Total de alumnos: ${examen.resultados.length}</p>
+                    <div class="resultados-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Alumno</th>
+                                    <th>Curso</th>
+                                    <th>Nota</th>
+                                    <th>Resultado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultados-body"></tbody>
+                        </table>
+                    </div>
+                `;
+                
+                const resultadosBody = document.getElementById('resultados-body');
+                
+                if (examen.resultados.length === 0) {
+                    resultadosBody.innerHTML = '<tr><td colspan="4">No hay resultados aún</td></tr>';
+                    return;
+                }
+                
+                const aprobados = examen.resultados.filter(r => r.aprobado).length;
+                const desaprobados = examen.resultados.length - aprobados;
+                
+                const statsDiv = document.createElement('div');
+                statsDiv.className = 'stats';
+                statsDiv.innerHTML = `
+                    <p>Aprobados: ${aprobados} (${Math.round((aprobados / examen.resultados.length) * 100)}%)</p>
+                    <p>Desaprobados: ${desaprobados} (${Math.round((desaprobados / examen.resultados.length) * 100)}%)</p>
+                `;
+                resultadosContainer.insertBefore(statsDiv, resultadosContainer.querySelector('.resultados-table'));
+                
+                examen.resultados.forEach(resultado => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${resultado.apellido}, ${resultado.nombre}</td>
+                        <td>${resultado.curso}</td>
+                        <td>${resultado.nota.toFixed(1)}</td>
+                        <td class="${resultado.aprobado ? 'aprobado' : 'desaprobado'}">
+                            ${resultado.aprobado ? 'Aprobado' : 'Desaprobado'}
+                        </td>
+                    `;
+                    resultadosBody.appendChild(row);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

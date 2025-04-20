@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel del Alumno</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #3498db;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        .btn:hover {
+            background-color: #2980b9;
+        }
+
+        .btn-primary {
+            background-color: #2ecc71;
+        }
+
+        .btn-primary:hover {
+            background-color: #27ae60;
+        }
+
+        .pregunta-examen {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #eee;
+        }
+
+        .opcion-examen {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .opcion-examen:hover {
+            background-color: #f0f8ff;
+        }
+
+        .opcion-examen input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        .resultado-item {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: white;
+            border-left: 4px solid;
+        }
+
+        .correcta {
+            border-left-color: #2ecc71;
+            background-color: #f0fff4;
+        }
+
+        .incorrecta {
+            border-left-color: #e74c3c;
+            background-color: #fff0f0;
+        }
+
+        .aprobado {
+            color: #2ecc71;
+        }
+
+        .desaprobado {
+            color: #e74c3c;
+        }
+
+        #resultado-texto {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #resultado-texto h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        #resultado-texto p {
+            font-size: 18px;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Panel del Alumno</h1>
+        
+        <!-- Formulario de identificación -->
+        <div class="section" id="identificacion">
+            <h2>Ingrese sus datos</h2>
+            <div class="form-group">
+                <label for="nombre-alumno">Nombre:</label>
+                <input type="text" id="nombre-alumno" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="apellido-alumno">Apellido:</label>
+                <input type="text" id="apellido-alumno" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="curso-alumno">Curso:</label>
+                <input type="text" id="curso-alumno" class="form-control" required>
+            </div>
+            <button id="comenzar-examen" class="btn btn-primary">Comenzar Examen</button>
+        </div>
+        
+        <!-- Realización del examen -->
+        <div class="section hidden" id="examen-container">
+            <h2 id="titulo-examen">Examen</h2>
+            <div id="preguntas-examen"></div>
+            <button id="finalizar-examen" class="btn btn-primary">Finalizar Examen</button>
+        </div>
+        
+        <!-- Resultados del examen -->
+        <div class="section hidden" id="resultados-container">
+            <h2>Resultado del Examen</h2>
+            <div id="resultado-texto"></div>
+            <div id="detalle-resultados"></div>
+            <button id="descargar-pdf" class="btn">Descargar PDF</button>
+            <button id="volver-inicio" class="btn btn-primary">Volver al Inicio</button>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let alumnoInfo = {};
+        let examenActual = null;
+        let respuestas = [];
+        
+        // Elementos del DOM
+        const identificacionSection = document.getElementById('identificacion');
+        const examenContainerSection = document.getElementById('examen-container');
+        const resultadosContainerSection = document.getElementById('resultados-container');
+        const comenzarExamenBtn = document.getElementById('comenzar-examen');
+        const finalizarExamenBtn = document.getElementById('finalizar-examen');
+        const descargarPdfBtn = document.getElementById('descargar-pdf');
+        const volverInicioBtn = document.getElementById('volver-inicio');
+        
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cargamos el examen activo
+            examenActual = JSON.parse(localStorage.getItem('examenActivo'));
+            
+            if (!examenActual) {
+                alert('No hay ningún examen activo disponible');
+                return;
+            }
+            
+            // Event listeners
+            comenzarExamenBtn.addEventListener('click', comenzarExamen);
+            finalizarExamenBtn.addEventListener('click', corregirExamen);
+            descargarPdfBtn.addEventListener('click', generarPDF);
+            volverInicioBtn.addEventListener('click', reiniciarSistema);
+        });
+        
+        function comenzarExamen() {
+            const nombre = document.getElementById('nombre-alumno').value.trim();
+            const apellido = document.getElementById('apellido-alumno').value.trim();
+            const curso = document.getElementById('curso-alumno').value.trim();
+            
+            if (!nombre || !apellido || !curso) {
+                alert('Por favor complete todos los campos');
+                return;
+            }
+            
+            alumnoInfo = { nombre, apellido, curso };
+            identificacionSection.classList.add('hidden');
+            
+            // Cargamos directamente el examen activo
+            cargarExamen();
+            examenContainerSection.classList.remove('hidden');
+        }
+        
+        function cargarExamen() {
+            const tituloExamen = document.getElementById('titulo-examen');
+            const preguntasExamen = document.getElementById('preguntas-examen');
+            
+            tituloExamen.textContent = examenActual.nombre;
+            preguntasExamen.innerHTML = '';
+            
+            examenActual.preguntas.forEach((pregunta, index) => {
+                const preguntaDiv = document.createElement('div');
+                preguntaDiv.className = 'pregunta-examen';
+                preguntaDiv.dataset.index = index;
+                
+                let opcionesHTML = '';
+                pregunta.opciones.forEach((opcion, opcionIndex) => {
+                    opcionesHTML += `
+                        <div class="opcion-examen">
+                            <input type="radio" name="pregunta-${index}" id="opcion-${index}-${opcionIndex}" value="${opcionIndex}">
+                            <label for="opcion-${index}-${opcionIndex}">${opcion}</label>
+                        </div>
+                    `;
+                });
+                
+                preguntaDiv.innerHTML = `
+                    <h3>Pregunta ${index + 1}</h3>
+                    <p>${pregunta.texto}</p>
+                    <div class="opciones-container">
+                        ${opcionesHTML}
+                    </div>
+                `;
+                
+                preguntasExamen.appendChild(preguntaDiv);
+            });
+        }
+        
+        function corregirExamen() {
+            respuestas = [];
+            const preguntaElements = document.querySelectorAll('.pregunta-examen');
+            
+            let todasRespondidas = true;
+            
+            preguntaElements.forEach((preguntaEl, index) => {
+                const selectedOption = preguntaEl.querySelector(`input[name="pregunta-${index}"]:checked`);
+                
+                if (!selectedOption) {
+                    todasRespondidas = false;
+                    return;
+                }
+                
+                respuestas.push(parseInt(selectedOption.value));
+            });
+            
+            if (!todasRespondidas) {
+                alert('Por favor responda todas las preguntas');
+                return;
+            }
+            
+            let correctas = 0;
+            const resultadosDetalle = [];
+            
+            examenActual.preguntas.forEach((pregunta, index) => {
+                const esCorrecta = respuestas[index] === pregunta.correcta;
+                if (esCorrecta) correctas++;
+                
+                resultadosDetalle.push({
+                    pregunta: pregunta.texto,
+                    respuestaAlumno: pregunta.opciones[respuestas[index]],
+                    respuestaCorrecta: pregunta.opciones[pregunta.correcta],
+                    esCorrecta: esCorrecta
+                });
+            });
+            
+            const nota = (correctas / examenActual.preguntas.length) * 10;
+            const aprobado = nota >= 6;
+            
+            const resultadoAlumno = {
+                ...alumnoInfo,
+                nota: nota,
+                aprobado: aprobado,
+                fecha: new Date().toISOString(),
+                respuestas: respuestas
+            };
+            
+            const examenes = JSON.parse(localStorage.getItem('examenes')) || [];
+            const examenIndex = examenes.findIndex(e => e.enlace === examenActual.enlace);
+            
+            if (examenIndex !== -1) {
+                if (!examenes[examenIndex].resultados) {
+                    examenes[examenIndex].resultados = [];
+                }
+                examenes[examenIndex].resultados.push(resultadoAlumno);
+                localStorage.setItem('examenes', JSON.stringify(examenes));
+            }
+            
+            mostrarResultados(nota, aprobado, resultadosDetalle);
+        }
+        
+        function mostrarResultados(nota, aprobado, detalle) {
+            examenContainerSection.classList.add('hidden');
+            resultadosContainerSection.classList.remove('hidden');
+            
+            const resultadoTexto = document.getElementById('resultado-texto');
+            const detalleResultados = document.getElementById('detalle-resultados');
+            
+            resultadoTexto.innerHTML = `
+                <h3 class="${aprobado ? 'aprobado' : 'desaprobado'}">
+                    ${aprobado ? '¡Aprobado!' : 'Desaprobado'}
+                </h3>
+                <p>Nota: ${nota.toFixed(1)}</p>
+                <p>Respuestas correctas: ${detalle.filter(r => r.esCorrecta).length} de ${detalle.length}</p>
+            `;
+            
+            detalleResultados.innerHTML = '<h4>Detalle de respuestas:</h4>';
+            
+            detalle.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `resultado-item ${item.esCorrecta ? 'correcta' : 'incorrecta'}`;
+                itemDiv.innerHTML = `
+                    <p><strong>Pregunta ${index + 1}:</strong> ${item.pregunta}</p>
+                    <p><strong>Tu respuesta:</strong> ${item.respuestaAlumno}</p>
+                    ${!item.esCorrecta ? `<p><strong>Respuesta correcta:</strong> ${item.respuestaCorrecta}</p>` : ''}
+                `;
+                detalleResultados.appendChild(itemDiv);
+            });
+        }
+        
+        function generarPDF() {
+            // Cargar jsPDF dinámicamente
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+            script.onload = function() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                doc.setFont('helvetica');
+                doc.setFontSize(12);
+                
+                // Encabezado
+                doc.setFontSize(16);
+                doc.text(`Examen: ${examenActual.nombre}`, 105, 15, { align: 'center' });
+                doc.setFontSize(12);
+                doc.text(`Alumno: ${alumnoInfo.apellido}, ${alumnoInfo.nombre}`, 14, 25);
+                doc.text(`Curso: ${alumnoInfo.curso}`, 14, 32);
+                
+                // Resultado general
+                const aprobado = respuestas.filter((r, i) => r === examenActual.preguntas[i].correcta).length;
+                const total = examenActual.preguntas.length;
+                const nota = (aprobado / total) * 10;
+                
+                doc.setFontSize(14);
+                doc.text(`Resultado: ${nota >= 6 ? 'Aprobado' : 'Desaprobado'} (Nota: ${nota.toFixed(1)})`, 105, 45, { align: 'center' });
+                doc.text(`Respuestas correctas: ${aprobado} de ${total}`, 105, 52, { align: 'center' });
+                
+                // Detalle de respuestas
+                doc.setFontSize(12);
+                doc.text('Detalle de respuestas:', 14, 65);
+                
+                let y = 75;
+                examenActual.preguntas.forEach((pregunta, index) => {
+                    const respuestaAlumno = respuestas[index];
+                    const esCorrecta = respuestaAlumno === pregunta.correcta;
+                    
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Pregunta ${index + 1}: ${pregunta.texto}`, 14, y);
+                    y += 7;
+                    
+                    doc.setFont('helvetica', 'normal');
+                    doc.setTextColor(esCorrecta ? 0 : 255, 0, 0);
+                    doc.text(`Tu respuesta: ${pregunta.opciones[respuestaAlumno]}`, 20, y);
+                    y += 7;
+                    
+                    if (!esCorrecta) {
+                        doc.setTextColor(0, 128, 0);
+                        doc.text(`Respuesta correcta: ${pregunta.opciones[pregunta.correcta]}`, 20, y);
+                        y += 7;
+                    }
+                    
+                    doc.setTextColor(0, 0, 0);
+                    y += 5;
+                    
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                });
+                
+                doc.save(`Examen_${examenActual.nombre}_${alumnoInfo.apellido}.pdf`);
+            };
+            document.head.appendChild(script);
+        }
+        
+        function reiniciarSistema() {
+            alumnoInfo = {};
+            examenActual = null;
+            respuestas = [];
+            
+            resultadosContainerSection.classList.add('hidden');
+            identificacionSection.classList.remove('hidden');
+            
+            document.getElementById('nombre-alumno').value = '';
+            document.getElementById('apellido-alumno').value = '';
+            document.getElementById('curso-alumno').value = '';
+        }
+    </script>
+</body>
+</html>
